@@ -431,9 +431,9 @@ RUN \
 # bump: libmysofa after ./hashupdate Dockerfile LIBMYSOFA $LATEST
 # bump: libmysofa link "Release" https://github.com/hoene/libmysofa/releases/tag/v$LATEST
 # bump: libmysofa link "Source diff $CURRENT..$LATEST" https://github.com/hoene/libmysofa/compare/v$CURRENT..v$LATEST
-ARG LIBMYSOFA_VERSION=1.3.3
+ARG LIBMYSOFA_VERSION=1.3.4
 ARG LIBMYSOFA_URL="https://github.com/hoene/libmysofa/archive/refs/tags/v$LIBMYSOFA_VERSION.tar.gz"
-ARG LIBMYSOFA_SHA256=a15f7236a2b492f8d8da69f6c71b5bde1ef1bac0ef428b94dfca1cabcb24c84f
+ARG LIBMYSOFA_SHA256=64c661f75ef39edf68bfc3a28403d2b5a0bd251d0b9f5d021ed6f7917867fb37
 RUN \
   wget $WGET_OPTS -O libmysofa.tar.gz "$LIBMYSOFA_URL" && \
   echo "$LIBMYSOFA_SHA256  libmysofa.tar.gz" | sha256sum -c - && \
@@ -1117,7 +1117,7 @@ RUN \
 ARG FFMPEG_VERSION=7.1.1
 ARG FFMPEG_URL="https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.bz2"
 ARG FFMPEG_SHA256=0c8da2f11579a01e014fc007cbacf5bb4da1d06afd0b43c7f8097ec7c0f143ba
-ARG ENABLE_FDKAAC=
+ARG ENABLE_FDKAAC=yes
 # sed changes --toolchain=hardened -pie to -static-pie
 #
 # ldflags stack-size=2097152 is to increase default stack size from 128KB (musl default) to something
@@ -1294,38 +1294,106 @@ RUN /checkdupsym /ffmpeg-*
 # some basic fonts that don't take up much space
 RUN apk add $APK_OPTS font-terminus font-inconsolata font-dejavu font-awesome
 
-FROM scratch AS final1
-COPY --from=builder /usr/local/bin/ffmpeg /
-COPY --from=builder /usr/local/bin/ffprobe /
-COPY --from=builder /versions.json /
-COPY --from=builder /usr/local/share/doc/ffmpeg/* /doc/
-COPY --from=builder /etc/ssl/cert.pem /etc/ssl/cert.pem
-COPY --from=builder /etc/fonts/ /etc/fonts/
-COPY --from=builder /usr/share/fonts/ /usr/share/fonts/
-COPY --from=builder /usr/share/consolefonts/ /usr/share/consolefonts/
-COPY --from=builder /var/cache/fontconfig/ /var/cache/fontconfig/
+# bump: libcdio /LIBCDIO_VERSION=([\d.]+)/ https://github.com/libcdio/libcdio.git|*
+# bump: libcdio after ./hashupdate Dockerfile VVENC $LATEST
+# bump: libcdio link "CHANGELOG" https://github.com/libcdio/libcdio/releases/tag/$LATEST
+ARG LIBCDIO_VERSION=2.2.0
+ARG LIBCDIO_URL="https://github.com/libcdio/libcdio/releases/download/$LIBCDIO_VERSION/libcdio-$LIBCDIO_VERSION.tar.gz"
+ARG LIBCDIO_SHA256=1b6c58137f71721ddb78773432d26252ee6500d92d227d4c4892631c30ea7abb
+RUN \
+  wget $WGET_OPTS -O libcdio.tar.gz "$LIBCDIO_URL" && \
+  echo "$LIBCDIO_SHA256  libcdio.tar.gz" | sha256sum --status -c - && \
+  tar $TAR_OPTS libcdio.tar.gz && cd libcdio-* && \
+  	./configure \
+		--prefix=/usr/local \
+		--sysconfdir=/etc \
+		--mandir=/usr/share/man \
+		--infodir=/usr/share/info \
+		--disable-vcd-info \
+		--enable-static \
+    --disable-shared \
+    --disable-example-progs \
+		--disable-rpath \
+		--disable-cpp-progs && make -j$(nproc) && make install
 
-# sanity tests
-RUN ["/ffmpeg", "-version"]
-RUN ["/ffprobe", "-version"]
-RUN ["/ffmpeg", "-hide_banner", "-buildconf"]
-# stack size
-RUN ["/ffmpeg", "-f", "lavfi", "-i", "testsrc", "-c:v", "libsvtav1", "-t", "100ms", "-f", "null", "-"]
-# dns
-RUN ["/ffprobe", "-i", "https://github.com/favicon.ico"]
-# tls/https certs
-RUN ["/ffprobe", "-tls_verify", "1", "-ca_file", "/etc/ssl/cert.pem", "-i", "https://github.com/favicon.ico"]
-# svg
-RUN ["/ffprobe", "-i", "https://github.githubassets.com/favicons/favicon.svg"]
-# vvenc
-RUN ["/ffmpeg", "-f", "lavfi", "-i", "testsrc", "-c:v", "libvvenc", "-t", "100ms", "-f", "null", "-"]
-# x265 regression
-RUN ["/ffmpeg", "-f", "lavfi", "-i", "testsrc", "-c:v", "libx265", "-t", "100ms", "-f", "null", "-"]
+# bump: libcdio-paranoia /LIBCDIO_PARANOIA_VERSION=([\d.]+)/ https://github.com/libcdio/libcdio-paranoia.git|*
+# bump: libcdio-paranoia after ./hashupdate Dockerfile LIBCDIO_PARANOIA $LATEST
+# bump: libcdio-paranoia link "CHANGELOG" https://github.com/libcdio/libcdio-paranoia/releases/tag/$LATEST
+ARG LIBCDIO_PARANOIA_VERSION=10.2+2.0.2
+ARG LIBCDIO_PARANOIA_URL="https://github.com/libcdio/libcdio-paranoia/releases/download/release-$LIBCDIO_PARANOIA_VERSION/libcdio-paranoia-$LIBCDIO_PARANOIA_VERSION.tar.gz"
+ARG LIBCDIO_PARANOIA_SHA256=99488b8b678f497cb2e2f4a1a9ab4a6329c7e2537a366d5e4fef47df52907ff6
+RUN \
+  wget $WGET_OPTS -O libcdio-paranoia.tar.gz "$LIBCDIO_PARANOIA_URL" && \
+  echo "$LIBCDIO_PARANOIA_SHA256  libcdio-paranoia.tar.gz" | sha256sum --status -c - && \
+  tar $TAR_OPTS libcdio-paranoia.tar.gz && cd libcdio-paranoia-* && \
+  	./configure \
+		--prefix=/usr/local \
+		--sysconfdir=/etc \
+		--mandir=/usr/share/man \
+		--infodir=/usr/share/info \
+		--localstatedir=/var \
+		--enable-static \
+    --disable-shared && make -j$(nproc) && make install
 
-# clamp all files into one layer
-FROM scratch AS final2
-COPY --from=final1 / /
+# bump: neon /NEON_VERSION=([\d.]+)/ https://github.com/notroj/neon.git|*
+# bump: neon after ./hashupdate Dockerfile NEON $LATEST
+# bump: neon link "CHANGELOG" https://github.com/notroj/neon/releases/tag/$LATEST
+ARG NEON_VERSION=0.36.0
+ARG NEON_URL="https://notroj.github.io/neon/neon-$NEON_VERSION.tar.gz"
+ARG NEON_SHA256=70cc7f2aeebde263906e185b266e04e0de92b38e5f4ecccbf61e8b79177c2f07
+RUN \
+  wget $WGET_OPTS -O neon.tar.gz "$NEON_URL" && \
+  echo "$NEON_SHA256  neon.tar.gz" | sha256sum --status -c - && \
+  tar $TAR_OPTS neon.tar.gz && cd neon-* && \
+  	./configure \
+		--prefix=/usr/local \
+		--with-ssl \
+		--with-expat \
+		--without-gssapi \
+		--disable-nls \
+		--enable-static \
+		--enable-threadsafe-ssl=posix \
+		--with-ca-bundle=/etc/ssl/certs/ca-certificates.crt \
+    --disable-shared && make -j$(nproc) && make install
 
-FROM final2
-LABEL maintainer="Mattias Wadman mattias.wadman@gmail.com"
-ENTRYPOINT ["/ffmpeg"]
+
+RUN apk add $APK_OPTS curl-dev curl-static
+# bump: libmusicbrainz5 /LIBMUSICBRAINZ5_VERSION=([\d.]+)/ https://github.com/libcdio/libcdio.git|*
+# bump: libmusicbrainz5 after ./hashupdate Dockerfile VVENC $LATEST
+# bump: libmusicbrainz5 link "CHANGELOG" https://github.com/metabrainz/libmusicbrainz/releases/tag/$LATEST
+ARG LIBMUSICBRAINZ5_VERSION=5.1.0
+ARG LIBMUSICBRAINZ5_URL="https://github.com/metabrainz/libmusicbrainz/releases/download/release-$LIBMUSICBRAINZ5_VERSION/libmusicbrainz-$LIBMUSICBRAINZ5_VERSION.tar.gz"
+ARG LIBMUSICBRAINZ5_SHA256=6749259e89bbb273f3f5ad7acdffb7c47a2cf8fcaeab4c4695484cef5f4c6b46
+RUN \
+  wget $WGET_OPTS -O libmusicbrainz5.tar.gz "$LIBMUSICBRAINZ5_URL" && \
+  wget $WGET_OPTS -O libmusicbrainz5-5.patch "https://gitlab.archlinux.org/archlinux/packaging/packages/libmusicbrainz5/-/raw/main/libmusicbrainz5-5.patch" && \
+  wget $WGET_OPTS -O libmusicbrainz5-16.patch "https://gitlab.archlinux.org/archlinux/packaging/packages/libmusicbrainz5/-/raw/main/libmusicbrainz5-16.patch" && \
+  wget $WGET_OPTS -O libmusicbrainz5-19.patch "https://gitlab.archlinux.org/archlinux/packaging/packages/libmusicbrainz5/-/raw/main/libmusicbrainz5-19.patch" && \
+  echo "$LIBMUSICBRAINZ5_SHA256  libmusicbrainz5.tar.gz" | sha256sum --status -c - && \
+  tar $TAR_OPTS libmusicbrainz5.tar.gz && cd libmusicbrainz-* && \
+    patch -Np1 -i ../libmusicbrainz5-5.patch && \
+    patch -Np1 -i ../libmusicbrainz5-16.patch && \
+    patch -Np1 -i ../libmusicbrainz5-19.patch && \
+    sed -i 's/SHARED/STATIC/' src/CMakeLists.txt && \
+    sed -i '/ADD_SUBDIRECTORY(tests)/d' ./CMakeLists.txt && \
+    sed -i '/ADD_SUBDIRECTORY(examples)/d' ./CMakeLists.txt && \
+    sed -i 's!TARGET_LINK_LIBRARIES(musicbrainz5cc ${NEON_LIBRARIES} ${LIBXML2_LIBRARIES})!TARGET_LINK_LIBRARIES(musicbrainz5cc ${NEON_LIBRARIES} ${LIBXML2_LIBRARIES} /usr/lib/libcrypto.a /usr/lib/libssl.a)!g' src/CMakeLists.txt && \
+    cmake -S . -B build \
+    -G"Ninja" \
+    -DCMAKE_VERBOSE_MAKEFILE=ON \
+    -DCMAKE_BUILD_TYPE=None \
+    -DBUILD_SHARED_LIBS=OFF \
+    -DCMAKE_INSTALL_PREFIX=/usr/local && \
+    cmake --build build && \
+  	cmake --install build
+
+# clone  cyanrip
+RUN mkdir -p /usr/local/src && cd /usr/local/src && git clone https://github.com/cyanreg/cyanrip.git
+
+RUN apk add $APK_OPTS c-ares-static zstd-static libpsl-static libunistring-static libidn2-static nghttp2-static
+
+# build cyanrip statically
+RUN cd /usr/local/src/cyanrip && \
+  meson -Dbuildtype=release -Ddefault_library=static -Dprefer_static=true -Dc_link_args='-Wl,--allow-multiple-definition -static-libgcc -static-libstdc++ -static' build && \
+  cd build && ninja install && strip /usr/local/bin/cyanrip
+RUN file /usr/local/bin/cyanrip
