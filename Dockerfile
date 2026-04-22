@@ -859,14 +859,14 @@ RUN \
   make -j$(nproc) install
 
 # x264 only have a stable branch no tags and we checkout commit so no hash is needed
-# bump: x264 /X264_VERSION=([[:xdigit:]]+)/ gitrefs:https://code.videolan.org/videolan/x264.git|re:#^refs/heads/stable$#|@commit
+# bump: x264 /X264_COMMIT=([[:xdigit:]]+)/ gitrefs:https://code.videolan.org/videolan/x264.git|re:#^refs/heads/stable$#|@commit
 # bump: x264 after ./hashupdate Dockerfile X264 $LATEST
 # bump: x264 link "Source diff $CURRENT..$LATEST" https://code.videolan.org/videolan/x264/-/compare/$CURRENT...$LATEST
 ARG X264_URL="https://code.videolan.org/videolan/x264.git"
-ARG X264_VERSION=31e19f92f00c7003fa115047ce50978bc98c3a0d
+ARG X264_COMMIT=b35605ace3ddf7c1a5d67a2eb553f034aef41d55
 RUN \
   git clone "$X264_URL" && cd x264 && \
-  git checkout --recurse-submodules $X264_VERSION && \
+  git checkout --recurse-submodules $X264_COMMIT && \
   ./configure \
     --enable-pic \
     --enable-static \
@@ -1110,7 +1110,8 @@ RUN \
   cmake --build build/release-static -j && \
   cmake --build build/release-static --target install
 
-# bump: ffmpeg /FFMPEG_VERSION=([\d.]+)/ https://github.com/FFmpeg/FFmpeg.git|*
+# keep ffmpeg version clamped to 7.x.x!
+# bump: ffmpeg /FFMPEG_VERSION=([\d.]+)/ https://github.com/FFmpeg/FFmpeg.git|^7
 # bump: ffmpeg after ./hashupdate Dockerfile FFMPEG $LATEST
 # bump: ffmpeg link "Changelog" https://github.com/FFmpeg/FFmpeg/blob/n$LATEST/Changelog
 # bump: ffmpeg link "Source diff $CURRENT..$LATEST" https://github.com/FFmpeg/FFmpeg/compare/n$CURRENT..n$LATEST
@@ -1294,6 +1295,9 @@ RUN /checkdupsym /ffmpeg-*
 # some basic fonts that don't take up much space
 RUN apk add $APK_OPTS font-terminus font-inconsolata font-dejavu font-awesome
 
+# cyanrip and dependencies build deps
+RUN apk add $APK_OPTS c-ares-static zstd-static libpsl-static libunistring-static libidn2-static nghttp2-static curl-dev curl-static
+
 # bump: libcdio /LIBCDIO_VERSION=([\d.]+)/ https://github.com/libcdio/libcdio.git|*
 # bump: libcdio after ./hashupdate Dockerfile VVENC $LATEST
 # bump: libcdio link "CHANGELOG" https://github.com/libcdio/libcdio/releases/tag/$LATEST
@@ -1316,7 +1320,7 @@ RUN \
 		--disable-rpath \
 		--disable-cpp-progs && make -j$(nproc) && make install
 
-# bump: libcdio-paranoia /LIBCDIO_PARANOIA_VERSION=([\d.]+)/ https://github.com/libcdio/libcdio-paranoia.git|*
+# bump: libcdio-paranoia /LIBCDIO_PARANOIA_VERSION=([\d.+]+)/ gitrefs:https://github.com/libcdio/libcdio-paranoia.git|/release-(.*)/|semver:10.x+x.x.x
 # bump: libcdio-paranoia after ./hashupdate Dockerfile LIBCDIO_PARANOIA $LATEST
 # bump: libcdio-paranoia link "CHANGELOG" https://github.com/libcdio/libcdio-paranoia/releases/tag/$LATEST
 ARG LIBCDIO_PARANOIA_VERSION=10.2+2.0.2
@@ -1356,10 +1360,8 @@ RUN \
 		--with-ca-bundle=/etc/ssl/certs/ca-certificates.crt \
     --disable-shared && make -j$(nproc) && make install
 
-
-RUN apk add $APK_OPTS curl-dev curl-static
-# bump: libmusicbrainz5 /LIBMUSICBRAINZ5_VERSION=([\d.]+)/ https://github.com/libcdio/libcdio.git|*
-# bump: libmusicbrainz5 after ./hashupdate Dockerfile VVENC $LATEST
+# bump: libmusicbrainz5 /LIBMUSICBRAINZ5_VERSION=([\d.]+)/ https://github.com/metabrainz/libmusicbrainz.git|^5
+# bump: libmusicbrainz5 after ./hashupdate Dockerfile LIBMUSICBRAINZ5 $LATEST
 # bump: libmusicbrainz5 link "CHANGELOG" https://github.com/metabrainz/libmusicbrainz/releases/tag/$LATEST
 ARG LIBMUSICBRAINZ5_VERSION=5.1.0
 ARG LIBMUSICBRAINZ5_URL="https://github.com/metabrainz/libmusicbrainz/releases/download/release-$LIBMUSICBRAINZ5_VERSION/libmusicbrainz-$LIBMUSICBRAINZ5_VERSION.tar.gz"
@@ -1387,13 +1389,13 @@ RUN \
     cmake --build build && \
   	cmake --install build
 
-# clone  cyanrip
-RUN mkdir -p /usr/local/src && cd /usr/local/src && git clone https://github.com/cyanreg/cyanrip.git
-
-RUN apk add $APK_OPTS c-ares-static zstd-static libpsl-static libunistring-static libidn2-static nghttp2-static
-
-# build cyanrip statically
-RUN cd /usr/local/src/cyanrip && \
+# use latest commit of master branch
+# bump: cyanrip /CYANRIP_COMMIT=([[:xdigit:]]+)/ gitrefs:https://github.com/cyanreg/cyanrip.git|re:#^refs/heads/master$#|@commit
+# bump: cyanrip link "CHANGELOG" https://github.com/cyanreg/cyanrip/compare/$CURRENT...$LATEST
+ARG CYANRIP_COMMIT=65afeabc372985050063a7ef4f2c88dd4b011dad
+ARG CYANRIP_URL="https://github.com/cyanreg/cyanrip.git"
+RUN \
+  git clone "$CYANRIP_URL" && cd cyanrip && \
+  git checkout --recurse-submodules $CYANRIP_COMMIT && \
   meson -Dbuildtype=release -Ddefault_library=static -Dprefer_static=true -Dc_link_args='-Wl,--allow-multiple-definition -static-libgcc -static-libstdc++ -static' build && \
   cd build && ninja install && strip /usr/local/bin/cyanrip
-RUN file /usr/local/bin/cyanrip
