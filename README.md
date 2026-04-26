@@ -1,8 +1,8 @@
 ## cyanrip-static
 
-Docker image with [cyanrip](https://github.com/cyanreg/cyanrip), [ffmpeg](https://ffmpeg.org/ffmpeg.html) and [ffprobe](https://ffmpeg.org/ffprobe.html) built as static binaries with no external dependencies that can be used with any base image.
+Docker image with [cyanrip](https://github.com/cyanreg/cyanrip) built as a static binary with no external dependencies, that can be used with any base image or a binary by itself.
 
-See [Dockerfile](Dockerfile) for versions used. In general, main **should** have the latest stable version of cyanrip, along with the compatible version of ffmpeg (~v7) and the below libraries. 
+See [Dockerfile](Dockerfile) for versions used. In general, main **should** have the latest commit of cyanrip, along with the compatible version of ffmpeg (~v7) and the below libraries. 
 Versions can be kept up to date automatically using [bump](https://github.com/wader/bump).
 
 ### Usage
@@ -87,10 +87,7 @@ docker rm -f $container
 
 ### Files in the image
 
-- `/usr/local/bin/cyanrip`
-- `/usr/local/bin/ffmpeg` ffmpeg binary
-- `/usr/local/bin/ffprobe` ffprobe binary
-- `/versions.json` JSON file with build versions of ffmpeg and libraries.
+- `/cyanrip`
 
 ### Tags
 
