@@ -14,7 +14,9 @@ docker build -t cyanrip-static .
 
 Copy binary to local machine:
 ```sh
-docker run -i --rm -u $UID:$GROUPS -v "$PWD:$PWD" -w "$PWD" cyanrip-static bash -c "cp /usr/local/bin/cyanrip ."
+container=$(docker create cyanrip-static:latest)
+docker cp ${container}:/cyanrip .
+docker rm -f $container
 ```
 
 ### Libraries
